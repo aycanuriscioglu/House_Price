@@ -19,11 +19,14 @@ This data set, which includes Amazon product data, includes product categories a
 Ames, Lowa’daki konut evlerinden oluşan bu veri seti içerisinde 79 açıklayıcı değişken bulunduruyor. Kaggle üzerinde bir yarışması da bulunan projenin veri seti ve yarışma sayfasına aşağıdaki linkten ulaşabilirsiniz. Veri seti bir kaggle yarışmasına ait olduğundan dolayı train ve test olmak üzere iki farklı csv dosyası vardır. Test veri setinde ev fiyatları boş bırakılmış olup, bu değerleri sizin tahmin etmeniz beklenmektedir.
 
 Toplam Gözlem 1460
+
 Total Observations 1460
 
 Sayısal Değişken 38
+
 Numeric Variable 38
 
 Kategorik Değişken 43
+
 Categorical Variable 43
 
