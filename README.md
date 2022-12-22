@@ -26,3 +26,4 @@ Numeric Variable 38
 
 Kategorik Değişken 43
 Categorical Variable 43
+
