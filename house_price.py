@@ -1,21 +1,3 @@
-import warnings
-import joblib
-import pydotplus
-import numpy as np
-import pandas as pd
-import seaborn as sns
-from matplotlib import pyplot as plt
-from sklearn.tree import DecisionTreeClassifier, export_graphviz, export_text
-from sklearn.metrics import classification_report, roc_auc_score
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_validate, validation_curve
-from skompiler import skompile
-import graphviz
-import missingno as msno
-
-warnings.simplefilter(action='ignore', category=Warning)
-
-#Görev 1
-#Adım 1: Train ve Test veri setlerini okutup birleştiriniz. Birleştirdiğiniz veri üzerinden ilerleyiniz.
 train = pd.read_csv("data/house_train.csv")
 test = pd.read_csv("data/house_test.csv")
 
@@ -48,9 +30,6 @@ for i in df.columns:
 
 df.drop('Id', axis = 1, inplace=True)
 
-
-#Adım 2: Numerik ve kategorik değişkenleri yakalayınız.
-
 def grab_col_names(dataframe, cat_th=13, car_th=20):
     cat_cols= [col for col in df.columns if str(df[col].dtypes) in ["category","object", "bool"]]
     num_but_cat=[col for col in df.columns if df[col].nunique()<10 and df[col].dtypes in ["int", "float"]]
@@ -72,11 +51,6 @@ def grab_col_names(dataframe, cat_th=13, car_th=20):
     return cat_cols, num_cols,cat_but_car, num_but_cat
 
 cat_cols, num_cols,cat_but_car,num_but_cat= grab_col_names(df)
-
-#Adım 3: Gerekli düzenlemeleri yapınız. (Tip hatası olan değişkenler gibi)
-df.dtypes
-
-#Adım 4: Numerik ve kategorik değişkenlerin veri içindeki dağılımını gözlemleyiniz.
 
 def num_summary(dataframe, numerical_col, plot= False):
     quantiles= [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
@@ -116,7 +90,6 @@ for col in cat_cols:
     cat_summary(df, col, plot=True)
 
 
-# Adım 5: Kategorik değişkenler ile hedef değişken incelemesini yapınız.
 def target_summary_cat(dataframe, target, cat_cols):
     for col in cat_cols:
         print(col, ":", len(dataframe[col].value_counts()))
@@ -126,8 +99,6 @@ def target_summary_cat(dataframe, target, cat_cols):
 
 target_summary_cat(df, "SalePrice", cat_cols)
 
-
-# Adım 6: Aykırı gözlem var mı inceleyiniz.
 
 def outlier_thresholds(dataframe, variable):
     quartile1 = dataframe[variable].quantile(0.10)
@@ -174,9 +145,7 @@ def check_outlier_graph(dataframe, col_name, plot= False):
 for col in num_cols:
     check_outlier_graph(df, col, plot=True)
 
-
-#Adım 7: Eksik gözlem var mı inceleyiniz.
-
+    
 def missing_values_table(dataframe, na_name=False):
     na_columns = [col for col in dataframe.columns if dataframe[col].isnull().sum() > 0]
 
@@ -198,10 +167,7 @@ sns.heatmap(df[num_cols].corr(), annot=True, fmt=".2f")
 ax.set_title("Correlation Matrix", fontsize=25)
 plt.show()
 
-#Görev 2: Feature Engineering
-df.head()
 
-#Adım 1: Eksik ve aykırı gözlemler için gerekli işlemleri yapınız.
 for col in num_cols:
     replace_with_thresholds(df, col)
 
@@ -259,11 +225,11 @@ for col in cat_cols:
 
         return temp_df
 
-
-    # rare oranı 0.01 bu oranın altında kalan sınıfları birleştirir
     new_df = rare_encoder(df, 0.01)
 
-    # Adım 3: Yeni değişkenler oluşturunuz.
+    
+    # Feature Engineering
+    
     new_df["NEW_1st*GrLiv"] = new_df["1stFlrSF"] * new_df["GrLivArea"]
 
     new_df["NEW_Garage*GrLiv"] = (new_df["GarageArea"] * new_df["GrLivArea"])
@@ -272,32 +238,25 @@ for col in cat_cols:
                                   "BsmtFinType2", "HeatingQC", "KitchenQual", "Functional", "FireplaceQu", "GarageQual",
                                   "GarageCond", "Fence"]].sum(axis=1)  # 42
 
-    # Total Floor
     new_df["NEW_TotalFlrSF"] = new_df["1stFlrSF"] + new_df["2ndFlrSF"]  # 32
 
-    # Total Finished Basement Area
     new_df["NEW_TotalBsmtFin"] = new_df.BsmtFinSF1 + df.BsmtFinSF2  # 56
 
-    # Porch Area
     new_df["NEW_PorchArea"] = new_df.OpenPorchSF + new_df.EnclosedPorch + new_df.ScreenPorch + new_df[
         "3SsnPorch"] + new_df.WoodDeckSF  # 93
 
-    # Total House Area
     new_df["NEW_TotalHouseArea"] = new_df.NEW_TotalFlrSF + new_df.TotalBsmtSF  # 156
 
     new_df["NEW_TotalSqFeet"] = new_df.GrLivArea + new_df.TotalBsmtSF  # 35
 
-    # Lot Ratio
     new_df["NEW_LotRatio"] = new_df.GrLivArea / new_df.LotArea  # 64
 
     new_df["NEW_RatioArea"] = new_df.NEW_TotalHouseArea / new_df.LotArea  # 57
 
     new_df["NEW_GarageLotRatio"] = new_df.GarageArea / new_df.LotArea  # 69
 
-    # MasVnrArea
     new_df["NEW_MasVnrRatio"] = new_df.MasVnrArea / new_df.NEW_TotalHouseArea  # 36
 
-    # Dif Area
     new_df["NEW_DifArea"] = (new_df.LotArea - new_df[
         "1stFlrSF"] - new_df.GarageArea - new_df.NEW_PorchArea - new_df.WoodDeckSF)  # 73
 
@@ -315,11 +274,11 @@ for col in cat_cols:
 
     new_df["NEW_GarageSold"] = new_df.YrSold - new_df.GarageYrBlt  # 48
 
-#%%
+    
 drop_list = ["Street", "Alley", "LandContour", "Utilities", "LandSlope","Heating", "PoolQC", "MiscFeature","Neighborhood"]
 new_df.drop(drop_list, axis = 1, inplace=True)
 
-# Adım 4: Encoding işlemlerini gerçekleştiriniz.
+# Encodding
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder, StandardScaler, RobustScaler
 
 
@@ -364,23 +323,6 @@ train_dataframe.head()
 
 train_dataframe.isnull().sum().sum()
 
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.exceptions import ConvergenceWarning
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.svm import SVR
-from sklearn.neural_network import MLPRegressor
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor, BaggingRegressor, AdaBoostRegressor, GradientBoostingRegressor
-from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
-from catboost import CatBoostRegressor
-
 
 y = train_dataframe["SalePrice"]
 X = train_dataframe.drop(["SalePrice"], axis=1)
@@ -406,8 +348,6 @@ for name, regressor in models:
     print(f"RMSE: {round(rmse, 4)} ({name}) ")
 
 
-
-#Adım 3: Hiperparemetre optimizasyonu gerçekleştiriniz.
 lgbm_model = LGBMRegressor(random_state=46)
 
 rmse = np.mean(np.sqrt(-cross_val_score(lgbm_model, X, y, cv=5, scoring="neg_mean_squared_error")))
@@ -439,10 +379,6 @@ cv_results['score_time'].mean()
 
 cv_results['test_score'].mean()
 
-#Adım 4: Değişken önem düzeyini inceleyeniz.
-#Bonus: Test verisinde boş olan salePrice değişkenlerini tahminleyiniz ve Kaggle sayfasına submit etmeye uygun halde bir
-#dataframe oluşturup sonucunuzu yükleyiniz
-#%%
 def plot_importance(model, features, num=len(X), save=False):
     feature_imp = pd.DataFrame({'Value': model.feature_importances_, 'Feature': features.columns})
     plt.figure(figsize=(18, 18))
